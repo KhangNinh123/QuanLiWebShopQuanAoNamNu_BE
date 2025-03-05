@@ -1,30 +1,28 @@
-package iuh.orderservice;
+package com.example.orderservice;
 
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.context.annotation.Bean;
+import org.springframework.web.bind.annotation.*;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.Map;
 
 @SpringBootApplication
-@EnableDiscoveryClient
+@RestController
+@RequestMapping("/orders")
 public class OrderServiceApplication {
-	@Bean
-	CommandLineRunner testDatabaseConnection(DataSource dataSource) {
-		return args -> {
-			try (Connection conn = dataSource.getConnection()) {
-				System.out.println("✅ Kết nối thành công đến database: " + conn.getCatalog());
-			} catch (SQLException e) {
-				System.err.println("❌ Lỗi kết nối database: " + e.getMessage());
-			}
-		};
-	}
+
+	private static final Map<Integer, String> orders = Map.of(
+			1, "Order 1: Laptop",
+			2, "Order 2: Smartphone",
+			3, "Order 3: Tablet"
+	);
+
 	public static void main(String[] args) {
 		SpringApplication.run(OrderServiceApplication.class, args);
 	}
 
+	@GetMapping("/{id}")
+	public String getOrderById(@PathVariable int id) {
+		return orders.getOrDefault(id, "Order not found");
+	}
 }
