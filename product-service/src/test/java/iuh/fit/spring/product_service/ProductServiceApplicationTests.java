@@ -1,4 +1,4 @@
-package iuh.productservice;
+package iuh.fit.spring.product_service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
