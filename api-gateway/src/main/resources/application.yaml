@@ -1,0 +1,22 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: product-service-route
+          uri: http://localhost:8881  # Địa chỉ của Product Service
+          predicates:
+            - Path=/api/products/**   # Route sẽ xử lý các request có path bắt đầu bằng /api/products/
+          filters:
+            - StripPrefix=1           # Loại bỏ prefix `/api/products` trước khi chuyển tiếp request
+
+        - id: cart-service-route
+          uri: http://localhost:8083  # Địa chỉ của Cart Service
+          predicates:
+            - Path=/api/carts/**      # Route sẽ xử lý các request có path bắt đầu bằng /api/carts/
+          filters:
+            - StripPrefix=1           # Loại bỏ prefix `/api/carts` trước khi chuyển tiếp request
