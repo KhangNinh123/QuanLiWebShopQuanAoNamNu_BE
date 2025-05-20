@@ -32,7 +32,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-            username = jwtUtil.extractUsername(token);
+            try {
+                username = jwtUtil.extractUsername(token);
+                System.out.println("[JwtAuthenticationFilter] Token: " + token);
+                System.out.println("[JwtAuthenticationFilter] Username from token: " + username);
+            } catch (Exception e) {
+                System.out.println("[JwtAuthenticationFilter] Lỗi giải mã token: " + e.getMessage());
+            }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

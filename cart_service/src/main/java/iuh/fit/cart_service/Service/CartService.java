@@ -9,6 +9,7 @@ import iuh.fit.cart_service.client.ProductClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -72,6 +73,7 @@ public class CartService {
     }
 
     // Thanh toán và xóa giỏ hàng
+    @Transactional
     public void checkout(String userName) {
         cartRepository.deleteByUserName(userName);
     }

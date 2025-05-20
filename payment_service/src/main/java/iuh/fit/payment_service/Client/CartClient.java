@@ -1,6 +1,5 @@
 package iuh.fit.payment_service.Client;
 
-
 import iuh.fit.cart_service.DTO.CartItemDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,7 +16,8 @@ public class CartClient {
         this.webClient = webClientBuilder.baseUrl(cartServiceUrl).build();
     }
 
-    public Mono<List<CartItemDTO>> getCart(Long userId, String token) {
+    // Gọi API lấy giỏ hàng theo username (token phải là của user đó)
+    public Mono<List<CartItemDTO>> getCartByUsername(String username, String token) {
         return webClient.get()
                 .uri("/api/cart")
                 .header("Authorization", "Bearer " + token)
@@ -26,7 +26,8 @@ public class CartClient {
                 .collectList();
     }
 
-    public Mono<Void> checkout(Long userId, String token) {
+    // Gọi API checkout theo username (token phải là của user đó)
+    public Mono<Void> checkoutByUsername(String username, String token) {
         return webClient.post()
                 .uri("/api/cart/checkout")
                 .header("Authorization", "Bearer " + token)

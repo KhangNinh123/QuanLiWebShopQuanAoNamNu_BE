@@ -45,4 +45,13 @@ public class AuthController {
         response.setUser(user);
         return response;
     }
+
+    @GetMapping("/userid")
+    public Long getUserIdByUsername(@RequestParam String username) {
+        UserDTO user = userService.findByUsername(username);
+        if (user == null) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "User not found");
+        }
+        return user.getId();
+    }
 }
