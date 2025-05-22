@@ -1,6 +1,6 @@
 package iuh.fit.payment_service.service;
 
-import iuh.fit.cart_service.DTO.CartItemDTO;
+import iuh.fit.payment_service.dto.CartItemDTO;
 import iuh.fit.payment_service.Client.CartClient;
 import iuh.fit.payment_service.Client.UserClient;
 import iuh.fit.payment_service.dto.CheckoutRequest;
