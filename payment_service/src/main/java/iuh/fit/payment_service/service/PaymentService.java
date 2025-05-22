@@ -3,77 +3,126 @@ package iuh.fit.payment_service.service;
 import iuh.fit.cart_service.DTO.CartItemDTO;
 import iuh.fit.payment_service.Client.CartClient;
 import iuh.fit.payment_service.Client.UserClient;
-import iuh.fit.payment_service.dto.PaymentDTO;
-import iuh.fit.payment_service.entity.Payment;
-import iuh.fit.payment_service.repository.PaymentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import iuh.fit.payment_service.dto.CheckoutRequest;
+import iuh.fit.payment_service.dto.OrderResponse;
+import iuh.fit.payment_service.entity.Order;
+import iuh.fit.payment_service.entity.OrderStatus;
+import iuh.fit.payment_service.repository.OrderRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class PaymentService {
-    @Autowired
-    private PaymentRepository paymentRepository;
+    private final OrderRepository orderRepository;
+    private final RestTemplate restTemplate;
+    private final EmailService emailService;
 
-    @Autowired
-    private CartClient cartClient;
+    public OrderResponse createOrder(CheckoutRequest request, String username, String token) {
+        // 1. Lấy userId từ user service
+        Long userId = getUserIdFromUserService(username, token);
 
-    @Autowired
-    private UserClient userClient;
+        // 2. Tạo đơn hàng mới
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setCustomerName(request.getCustomerInfo().getName());
+        order.setCustomerPhone(request.getCustomerInfo().getPhone());
+        order.setCustomerEmail(request.getCustomerInfo().getEmail());
+        order.setCustomerAddress(request.getCustomerInfo().getAddress());
+        order.setTotalAmount(request.getTotalAmount());
 
-    public PaymentDTO processPayment(String username, String token) {
-        // Lấy giỏ hàng theo username (không cần userId)
-        List<CartItemDTO> cartItems = cartClient.getCartByUsername(username, token).block();
-        if (cartItems == null || cartItems.isEmpty()) {
-            throw new RuntimeException("Cart is empty");
-        }
+        // 3. Lưu đơn hàng
+        Order savedOrder = orderRepository.save(order);
 
-        double totalAmount = cartItems.stream()
-                .mapToDouble(item -> item.getProductPrice() * item.getQuantity())
-                .sum();
+        // 4. Xóa giỏ hàng (gọi cart service)
+        clearCart(token);
 
-        // Nếu cần userId để lưu vào bảng payment, lấy userId từ user_service
-        Long userId = userClient.getUserIdByUsername(username, token).block();
-        if (userId == null) {
-            throw new RuntimeException("Không tìm thấy userId cho username: " + username);
-        }
+        // 5. Gửi email xác nhận
+        emailService.sendOrderConfirmation(savedOrder);
 
-        String transactionId = "TXN_" + UUID.randomUUID().toString().substring(0, 8);
-        Payment payment = new Payment();
-        payment.setUserId(userId);
-        payment.setTotalAmount(totalAmount);
-        payment.setStatus(Payment.Status.SUCCESS);
-        payment.setTransactionId(transactionId);
-
-        payment = paymentRepository.save(payment);
-
-        cartClient.checkoutByUsername(username, token).block();
-
-        return toDTO(payment);
+        // 6. Chuyển đổi sang OrderResponse
+        return convertToOrderResponse(savedOrder, request.getItems());
     }
 
-    public List<PaymentDTO> getPaymentHistory(String username) {
-        Long userId = userClient.getUserIdByUsername(username, null).block();
-        if (userId == null) {
-            throw new RuntimeException("Không tìm thấy userId cho username: " + username);
-        }
-        return paymentRepository.findByUserId(userId).stream()
-                .map(this::toDTO)
+    public List<OrderResponse> getOrdersByUserId(Long userId, String token) {
+        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return orders.stream()
+                .map(order -> convertToOrderResponse(order, null))
                 .collect(Collectors.toList());
     }
 
-    private PaymentDTO toDTO(Payment payment) {
-        PaymentDTO dto = new PaymentDTO();
-        dto.setId(payment.getId());
-        dto.setUserId(payment.getUserId());
-        dto.setTotalAmount(payment.getTotalAmount());
-        dto.setStatus(payment.getStatus().name());
-        dto.setTransactionId(payment.getTransactionId());
-        dto.setCreatedAt(payment.getCreatedAt());
-        return dto;
+    public Long getUserIdFromUserService(String username, String token) {
+        try {
+            if (!token.startsWith("Bearer ")) {
+                token = "Bearer " + token;
+            }
+            System.out.println("[PaymentService] Token gửi sang user_service: " + token);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<Long> response = restTemplate.exchange(
+                "http://localhost:8081/api/auth/userid?username=" + username,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                Long.class
+            );
+            return response.getBody();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get userId from user service", e);
+        }
+    }
+
+    private void clearCart(String token) {
+        try {
+            if (!token.startsWith("Bearer ")) {
+                token = "Bearer " + token;
+            }
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", token);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            restTemplate.exchange(
+                "http://localhost:8083/api/cart/clear",
+                org.springframework.http.HttpMethod.DELETE,
+                entity,
+                Void.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to clear cart", e);
+        }
+    }
+
+    private OrderResponse convertToOrderResponse(Order order, List<CheckoutRequest.CartItem> items) {
+        OrderResponse response = new OrderResponse();
+        response.setId(order.getId());
+        response.setCustomerName(order.getCustomerName());
+        response.setCustomerPhone(order.getCustomerPhone());
+        response.setCustomerEmail(order.getCustomerEmail());
+        response.setCustomerAddress(order.getCustomerAddress());
+        response.setTotalAmount(order.getTotalAmount());
+        response.setStatus(order.getStatus());
+        response.setCreatedAt(order.getCreatedAt());
+        response.setItems(items);
+        return response;
+    }
+
+    public void updateOrderStatus(Long orderId, String status) {
+        try {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            order.setStatus(OrderStatus.valueOf(status));
+            orderRepository.save(order);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to update order status: " + e.getMessage());
+        }
     }
 }

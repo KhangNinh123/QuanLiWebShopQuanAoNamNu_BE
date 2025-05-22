@@ -51,6 +51,17 @@ public class CartController {
         }
     }
 
+    // Xóa toàn bộ giỏ hàng của user hiện tại
+    @DeleteMapping("/clear")
+    public void clearCart() {
+        String userName = getCurrentUserName();
+        if (userName != null) {
+            cartService.clearCart(userName);
+        } else {
+            throw new RuntimeException("User is not authenticated");
+        }
+    }
+
     // Lấy tên người dùng từ SecurityContext
     private String getCurrentUserName() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

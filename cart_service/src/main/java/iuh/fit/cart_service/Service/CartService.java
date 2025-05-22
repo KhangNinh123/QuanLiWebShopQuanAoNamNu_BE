@@ -77,4 +77,9 @@ public class CartService {
     public void checkout(String userName) {
         cartRepository.deleteByUserName(userName);
     }
+
+    @Transactional
+    public void clearCart(String userName) {
+        cartRepository.deleteByUserName(userName);
+    }
 }
