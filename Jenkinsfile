@@ -8,10 +8,8 @@ pipeline {
         }
         stage('Build Backend') {
             steps {
-                dir('QuanLiWebShopQuanAoNamNu_BE') {
-                    withEnv(["PATH+MAVEN=${tool 'Maven3'}/bin"]) {
-                        bat 'mvn clean package -DskipTests'
-                    }
+                withEnv(["PATH+MAVEN=${tool 'Maven3'}/bin"]) {
+                    bat 'mvn clean package -DskipTests'
                 }
             }
         }
