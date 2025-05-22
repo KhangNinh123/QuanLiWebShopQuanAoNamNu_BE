@@ -1,8 +1,8 @@
 package iuh.fit.favorite_product_service.service;
 
-import com.example.productservice.dto.ProductDTO;
 import iuh.fit.favorite_product_service.client.ProductServiceClient;
 import iuh.fit.favorite_product_service.dto.FavoriteProductDTO;
+import iuh.fit.favorite_product_service.dto.ProductDTO;
 import iuh.fit.favorite_product_service.entity.FavoriteProduct;
 import iuh.fit.favorite_product_service.repository.FavoriteProductRepository;
 import lombok.RequiredArgsConstructor;

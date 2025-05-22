@@ -56,14 +56,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Product Service Dependency -->
-		<dependency>
-			<groupId>com.example</groupId>
-			<artifactId>product_service</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-			<scope>compile</scope>
-		</dependency>
-
 		<!-- Spring Security Core -->
 		<dependency>
 			<groupId>org.springframework.security</groupId>
